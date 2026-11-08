@@ -118,25 +118,56 @@ export function extractPriceFromHtml(html: string): PriceResult | null {
   return null;
 }
 
+// Closer to what a real browser sends; many shops reject bare requests outright
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'hr-HR,hr;q=0.9,en;q=0.8',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+};
+
 export async function fetchPrice(url: string): Promise<PriceResult> {
   const normalized = url.startsWith('http') ? url : `https://${url}`;
   new URL(normalized); // throws on invalid URLs
 
-  let html: string;
-  try {
-    const response = await axios.get(normalized, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'hr,en;q=0.8',
-      },
-      timeout: 15000,
-      maxContentLength: 5 * 1024 * 1024,
-      responseType: 'text',
-    });
-    html = typeof response.data === 'string' ? response.data : String(response.data);
-  } catch (error) {
-    throw new Error(`Could not load page: ${error instanceof Error ? error.message : 'unknown error'}`);
+  let html: string | null = null;
+  for (let attempt = 0; attempt < 2 && html === null; attempt++) {
+    try {
+      const response = await axios.get(normalized, {
+        headers: BROWSER_HEADERS,
+        timeout: 15000,
+        maxContentLength: 5 * 1024 * 1024,
+        responseType: 'text',
+      });
+      html = typeof response.data === 'string' ? response.data : String(response.data);
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+
+      // Rate limited: wait (as the shop asks, up to 15s) and try once more
+      if (status === 429 && attempt === 0 && axios.isAxiosError(error)) {
+        const retryAfter = Number(error.response?.headers?.['retry-after']);
+        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 15) * 1000 : 5000;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      if (status === 403) {
+        throw new Error('Blocked by the shop (403): it does not allow automated requests');
+      }
+      if (status === 429) {
+        throw new Error('Rate limited by the shop (429): will try again at the next check');
+      }
+      throw new Error(`Could not load page: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+
+  if (html === null) {
+    throw new Error('Could not load page');
   }
 
   const result = extractPriceFromHtml(html);

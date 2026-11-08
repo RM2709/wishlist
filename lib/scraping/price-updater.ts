@@ -9,7 +9,7 @@ export interface RefreshResult {
   error?: string;
 }
 
-const DELAY_BETWEEN_ITEMS_MS = 2000;
+const DELAY_BETWEEN_ITEMS_MS = 5000;
 const FIRST_RUN_DELAY_MS = 2 * 60 * 1000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,7 +89,7 @@ export async function runPriceCheck() {
       const result = await refreshItemPrice(item.id);
       if (!result.ok) failed++;
       else if (result.changed) updated++;
-      await sleep(DELAY_BETWEEN_ITEMS_MS); // be polite to shops
+      await sleep(DELAY_BETWEEN_ITEMS_MS + Math.random() * 3000); // be polite to shops
     }
 
     console.log(`💶 Price check done: ${items.length} checked, ${updated} updated, ${failed} failed`);
