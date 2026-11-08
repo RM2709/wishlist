@@ -43,6 +43,7 @@ export default function WishlistCard({
   const [isWishlistImageUploading, setIsWishlistImageUploading] = useState(false);
   const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
   const [wishlistItems, setWishlistItems] = useState<Item[]>([]);
+  const [refreshingItemId, setRefreshingItemId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [newItemError, setNewItemError] = useState<string>('');
@@ -136,6 +137,20 @@ export default function WishlistCard({
       onItemsChange();
     } catch (error) {
       alert('Failed to delete item');
+    }
+  };
+
+  const handleRefreshPrice = async (itemId: string) => {
+    setRefreshingItemId(itemId);
+    try {
+      await itemsApi.refreshPrice(itemId);
+    } catch (error: any) {
+      alert(error?.message || 'Failed to refresh price');
+    } finally {
+      // Reload either way: the item now shows the new price or the error
+      const items = await itemsApi.getAll(wishlist.id);
+      setWishlistItems(items);
+      setRefreshingItemId(null);
     }
   };
 
@@ -479,6 +494,8 @@ export default function WishlistCard({
                       onEdit={() => setEditingItemId(item.id)}
                       onDelete={() => handleDeleteItem(item.id)}
                       onTogglePriority={() => handleTogglePriority(item)}
+                      onRefreshPrice={() => handleRefreshPrice(item.id)}
+                      isRefreshingPrice={refreshingItemId === item.id}
                       onMoveUp={() => handleMoveItemUp(item.id)}
                       onMoveDown={() => handleMoveItemDown(item.id)}
                       isFirst={index === 0 || wishlistItems[index - 1].isPriority !== item.isPriority}

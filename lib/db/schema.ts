@@ -43,6 +43,11 @@ export const wishlistItems = sqliteTable('wishlist_items', {
   isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
   isPriority: integer('is_priority', { mode: 'boolean' }).notNull().default(false),
 
+  // Automatic price updates (read from the first purchase URL)
+  autoUpdatePrice: integer('auto_update_price', { mode: 'boolean' }).notNull().default(false),
+  priceCheckedAt: integer('price_checked_at', { mode: 'timestamp' }),
+  priceCheckError: text('price_check_error'),
+
   // Claim information
   claimedByName: text('claimed_by_name'),
   claimedByNote: text('claimed_by_note'),

@@ -5,6 +5,8 @@ interface ItemCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onTogglePriority: () => void;
+  onRefreshPrice: () => void;
+  isRefreshingPrice: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
   isFirst: boolean;
@@ -16,6 +18,8 @@ export default function ItemCard({
   onEdit,
   onDelete,
   onTogglePriority,
+  onRefreshPrice,
+  isRefreshingPrice,
   onMoveUp,
   onMoveDown,
   isFirst,
@@ -85,6 +89,29 @@ export default function ItemCard({
             {item.price && (
               <p className="text-base text-gray-500 dark:text-gray-400 mt-1">
                 {item.price.toFixed(2)} {item.currency}
+              </p>
+            )}
+            {item.autoUpdatePrice && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Auto price update ·{' '}
+                {item.priceCheckError ? (
+                  <span className="text-red-600 dark:text-red-400">
+                    last check failed: {item.priceCheckError}
+                  </span>
+                ) : item.priceCheckedAt ? (
+                  `checked ${new Date(item.priceCheckedAt).toLocaleString()}`
+                ) : (
+                  'not checked yet'
+                )}
+                {' · '}
+                <button
+                  type="button"
+                  onClick={onRefreshPrice}
+                  disabled={isRefreshingPrice}
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  {isRefreshingPrice ? 'Refreshing...' : 'Refresh now'}
+                </button>
               </p>
             )}
           </div>

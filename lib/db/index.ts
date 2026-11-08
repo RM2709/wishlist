@@ -82,6 +82,9 @@ export async function initializeDatabase() {
         notes TEXT,
         is_archived INTEGER DEFAULT 0 NOT NULL,
         is_priority INTEGER DEFAULT 0 NOT NULL,
+        auto_update_price INTEGER DEFAULT 0 NOT NULL,
+        price_checked_at INTEGER,
+        price_check_error TEXT,
         claimed_by_name TEXT,
         claimed_by_note TEXT,
         claimed_by_token TEXT UNIQUE,
@@ -132,15 +135,23 @@ export async function initializeDatabase() {
       console.log('Migration already applied or not needed');
     }
 
-    // Migration: add is_priority column to wishlist_items for existing databases
+    // Migration: add newer wishlist_items columns for existing databases
     try {
       const itemColumns = sqlite.pragma('table_info(wishlist_items)') as Array<{ name: string }>;
-      if (!itemColumns.some((col) => col.name === 'is_priority')) {
-        sqlite.exec('ALTER TABLE wishlist_items ADD COLUMN is_priority INTEGER DEFAULT 0 NOT NULL');
-        console.log('✅ Added is_priority column to wishlist_items table');
+      const newItemColumns: Array<[string, string]> = [
+        ['is_priority', 'INTEGER DEFAULT 0 NOT NULL'],
+        ['auto_update_price', 'INTEGER DEFAULT 0 NOT NULL'],
+        ['price_checked_at', 'INTEGER'],
+        ['price_check_error', 'TEXT'],
+      ];
+      for (const [name, definition] of newItemColumns) {
+        if (!itemColumns.some((col) => col.name === name)) {
+          sqlite.exec(`ALTER TABLE wishlist_items ADD COLUMN ${name} ${definition}`);
+          console.log(`✅ Added ${name} column to wishlist_items table`);
+        }
       }
     } catch (migrationError) {
-      console.error('is_priority migration failed:', migrationError);
+      console.error('wishlist_items migration failed:', migrationError);
     }
 
     // Auto-seed database if empty

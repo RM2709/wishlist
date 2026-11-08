@@ -51,8 +51,10 @@ export async function GET(
       )
       .orderBy(desc(wishlistItems.isPriority), wishlistItems.sortOrder);
 
-    // Return items
-    const responseItems = items;
+    // Price-check internals are only for the admin
+    const responseItems = isAuthenticated
+      ? items
+      : items.map(({ autoUpdatePrice, priceCheckedAt, priceCheckError, ...rest }) => rest);
 
     return NextResponse.json({
       success: true,
@@ -100,6 +102,7 @@ export async function POST(
       imageUrl,
       purchaseUrls,
       isPriority,
+      autoUpdatePrice,
     } = body;
 
     // Validation
@@ -147,6 +150,7 @@ export async function POST(
         imageUrl: imageUrl || null,
         purchaseUrls: purchaseUrls || null,
         isPriority: isPriority === true,
+        autoUpdatePrice: autoUpdatePrice === true,
         sortOrder: nextSortOrder,
       })
       .returning();

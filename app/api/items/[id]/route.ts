@@ -98,6 +98,7 @@ export async function PATCH(
       purchaseUrls,
       isArchived,
       isPriority,
+      autoUpdatePrice,
     } = body;
 
     // Check if item exists
@@ -128,6 +129,7 @@ export async function PATCH(
     if (purchaseUrls !== undefined) updateData.purchaseUrls = purchaseUrls;
     if (isArchived !== undefined) updateData.isArchived = isArchived;
     if (isPriority !== undefined) updateData.isPriority = Boolean(isPriority);
+    if (autoUpdatePrice !== undefined) updateData.autoUpdatePrice = Boolean(autoUpdatePrice);
 
     // Update item
     const updatedItem = await db

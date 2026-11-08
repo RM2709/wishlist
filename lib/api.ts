@@ -83,6 +83,9 @@ export interface Item {
   purchaseUrls: Array<{ label: string; url: string }> | null;
   isArchived: boolean;
   isPriority: boolean;
+  autoUpdatePrice: boolean;
+  priceCheckedAt: string | null;
+  priceCheckError: string | null;
   claimedByName: string | null;
   claimedByNote: string | null;
   claimedAt: string | null;
@@ -221,6 +224,14 @@ export const itemsApi = {
       credentials: 'include',
     });
     return handleResponse<void>(response);
+  },
+
+  async refreshPrice(id: string) {
+    const response = await fetch(`${API_BASE_URL}/items/${id}/refresh-price`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return handleResponse<{ success: boolean; changed: boolean; error?: string; item: Item }>(response);
   },
 
   async reorder(id: string, newSortOrder: number) {

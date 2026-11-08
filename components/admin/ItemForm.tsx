@@ -23,6 +23,7 @@ export default function ItemForm({ item, onSubmit, onCancel, mode, error }: Item
       quantity: 1,
       imageUrl: '',
       purchaseUrls: [],
+      autoUpdatePrice: false,
     }
   );
   const [isImageUploading, setIsImageUploading] = useState(false);
@@ -115,6 +116,24 @@ export default function ItemForm({ item, onSubmit, onCancel, mode, error }: Item
               setFormData((prev) => ({ ...prev, purchaseUrls: urls }))
             }
           />
+        </div>
+        <div className="md:col-span-2">
+          <label className="flex items-start gap-2 text-base text-gray-700 dark:text-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-gray-300"
+              checked={formData.autoUpdatePrice || false}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, autoUpdatePrice: e.target.checked }))
+              }
+            />
+            <span>
+              Update price automatically
+              <span className="block text-sm text-gray-500 dark:text-gray-400">
+                Reads the price from the first purchase URL on a schedule. Keeps the old price if the page can&apos;t be read.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
       <div className="mt-3 flex justify-end gap-2">
