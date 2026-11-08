@@ -8,11 +8,14 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import PasswordLockGuard from '@/components/password-lock-guard';
 
+type SortMode = 'manual' | 'price-asc' | 'price-desc';
+
 export default function PublicWishlistPage() {
   const params = useParams();
   const [wishlist, setWishlist] = useState<Wishlist | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [showClaimed, setShowClaimed] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -101,6 +104,27 @@ export default function PublicWishlistPage() {
   const filteredItems = showClaimed
     ? items
     : items.filter((item) => !item.claimedAt || item.id === justClaimedItemId);
+
+  // Priority items always come first; within each group, order by the chosen
+  // sort mode. Items without a price go last in both price directions.
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    const priorityDiff = Number(b.isPriority) - Number(a.isPriority);
+    if (priorityDiff !== 0) return priorityDiff;
+
+    if (sortMode !== 'manual') {
+      const aHasPrice = a.price !== null && a.price !== undefined;
+      const bHasPrice = b.price !== null && b.price !== undefined;
+      if (aHasPrice && !bHasPrice) return -1;
+      if (!aHasPrice && bHasPrice) return 1;
+      if (aHasPrice && bHasPrice) {
+        const priceDiff =
+          sortMode === 'price-asc' ? a.price! - b.price! : b.price! - a.price!;
+        if (priceDiff !== 0) return priceDiff;
+      }
+    }
+
+    return a.sortOrder - b.sortOrder;
+  });
 
   const formatPrice = (price: number | null, currency: string) => {
     if (!price) return null;
@@ -195,6 +219,18 @@ export default function PublicWishlistPage() {
                 />
                 <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Show claimed items</span>
               </label>
+              <label className="flex items-center">
+                <span className="mr-2 text-sm text-gray-700 dark:text-gray-300">Sort by</span>
+                <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                  className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="manual">Default order</option>
+                  <option value="price-asc">Price: low to high</option>
+                  <option value="price-desc">Price: high to low</option>
+                </select>
+              </label>
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {filteredItems.length} of {items.length} items
@@ -210,7 +246,7 @@ export default function PublicWishlistPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {filteredItems.map((item) => (
+              {sortedItems.map((item) => (
                 <div
                   key={item.id}
                   className={`bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all duration-300 hover:scale-105 overflow-hidden ${
